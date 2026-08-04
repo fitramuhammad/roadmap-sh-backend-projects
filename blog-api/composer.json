@@ -1,0 +1,27 @@
+{
+  "name": "fitra/blog-api",
+  "description": "Blogging Platform API",
+  "type": "project",
+  "autoload": {
+    "psr-4": {
+      "Blog\\": "app/"
+    }
+  },
+  "authors": [
+    {
+      "name": "fitra muhammad alfandy",
+      "email": "fitramuhammad31@gmail.com"
+    }
+  ],
+  "autoload-dev": {
+    "psr-4": {
+      "Tests\\": "tests/"
+    }
+  },
+  "require": {
+    "vlucas/phpdotenv": "^5.6"
+  },
+  "require-dev": {
+    "phpunit/phpunit": "^13.2"
+  }
+}

@@ -28,15 +28,6 @@ class Post
     $this->updated_at = $post["updated_at"];
   }
 
-  public static function collection()
-  {
-    $posts = self::query("SELECT * FROM blog")->fetchAll(PDO::FETCH_ASSOC);
-
-    if ($posts) {
-      return array_map(fn($item) => new Post($item), $posts);
-    }
-  }
-
   private static function query(string $query, $params = null)
   {
     $db = new Database()->connect();
@@ -44,6 +35,24 @@ class Post
     $stmt->execute($params);
 
     return $stmt;
+  }
+
+  public static function collection(string $q)
+  {
+    if ($q) {
+      $searchTerm = "%" . $q . "%";
+      $posts = self::query("SELECT * FROM blog
+        WHERE EXISTS (
+          SELECT 1 FROM jsonb_array_elements_text(data->'tags') AS tag WHERE tag ILIKE :term
+        ) 
+        OR data->>'title' ILIKE :term 
+        OR data->>'content' ILIKE :term 
+        OR data->>'category' ILIKE :term", ["term" => $searchTerm])->fetchAll(PDO::FETCH_ASSOC);
+    } else {
+      $posts = self::query("SELECT * FROM blog")->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    return array_map(fn($item) => new Post($item), $posts);
   }
 
   public static function getById(int $id)

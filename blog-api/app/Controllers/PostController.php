@@ -17,8 +17,11 @@ class PostController
   public function index()
   {
     header('Content-Type: application/json');
-    $blogs = $this->repository->getAll();
+    $term = $_GET["term"] ?? "";
+
+    $blogs = $this->repository->getAll($term);
     echo json_encode($blogs) . PHP_EOL;
+    return;
   }
 
   public function show(int $id)

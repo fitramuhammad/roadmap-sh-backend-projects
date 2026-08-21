@@ -75,29 +75,53 @@ class TodoRepository implements TodoRepositoryInterface
     return $stmt->rowCount() > 0;
   }
 
-  public function fetchAll(int $userId, ?int $limit = 0, ?int $offset = 0)
+  public function fetchAll(int $userId, ?string $filter = "", ?string $sort = "ASC", ?int $limit = 0, ?int $offset = 0): array
   {
-    $stmt = $this->connection;
+    $direction = strtoupper($sort ?? "ASC") === "DESC" ? "DESC" : "ASC";
 
-    if ($limit != 0) {
-      $stmt = $stmt->prepare("SELECT * FROM todos WHERE user_id = ? LIMIT ? OFFSET ?");
-      $stmt->execute([
-        $userId,
-        $limit,
-        $offset
-      ]);
+    $query = "SELECT * FROM todos WHERE user_id = ?";
+    $params = [$userId];
 
-      $res = $stmt->fetchAll(PDO::FETCH_ASSOC);
-      return array_map(fn($todo) => new Todo($userId, $todo["title"], $todo["description"], $todo["id"], $todo["created_at"], $todo["updated_at"]), $res);
+    if (!empty(trim($filter ?? ""))) {
+      $query .= " AND (title LIKE ? OR description LIKE ?)";
+      $searchTerm = "%" . trim($filter) . "%";
+      $params[] = $searchTerm;
+      $params[] = $searchTerm;
     }
 
-    $stmt = $this->connection->prepare("SELECT * FROM todos WHERE user_id = ? OFFSET ?");
-    $stmt->execute([
-      $userId,
-      $offset
-    ]);
+    $query .= " ORDER BY created_at {$direction}";
+
+    if ($limit > 0) {
+      $query .= " LIMIT ? OFFSET ?";
+      $params[] = $limit;
+      $params[] = $offset ?? 0;
+    } elseif (($offset ?? 0) > 0) {
+      $query .= " OFFSET ?";
+      $params[] = $offset;
+    }
+
+    $stmt = $this->connection->prepare($query);
+    $stmt->execute($params);
 
     $res = $stmt->fetchAll(PDO::FETCH_ASSOC);
     return array_map(fn($todo) => new Todo($userId, $todo["title"], $todo["description"], $todo["id"], $todo["created_at"], $todo["updated_at"]), $res);
+  }
+
+  public function count(int $userId, ?string $filter = ""): int
+  {
+    $query = "SELECT COUNT(*) FROM todos WHERE user_id = ?";
+    $params = [$userId];
+
+    if (!empty(trim($filter ?? ""))) {
+      $query .= " AND (title LIKE ? OR description LIKE ?)";
+      $searchTerm = "%" . trim($filter) . "%";
+      $params[] = $searchTerm;
+      $params[] = $searchTerm;
+    }
+
+    $stmt = $this->connection->prepare($query);
+    $stmt->execute($params);
+
+    return (int) $stmt->fetchColumn();
   }
 }

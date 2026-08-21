@@ -83,27 +83,33 @@ class TodoController
     header("Content-Type: application/json");
     $conn = Database::connect();
 
-    $page = filter_input(INPUT_GET, "page", FILTER_VALIDATE_INT) ?: 1;
-    $limit = filter_input(INPUT_GET, "limit", FILTER_VALIDATE_INT) ?: 10;
-    $offset = ($page - 1) * $limit;
+    $page = filter_input(INPUT_GET, "page", FILTER_VALIDATE_INT);
+    $page = ($page !== false && $page > 0) ? $page : 1;
 
+    $limit = filter_input(INPUT_GET, "limit", FILTER_VALIDATE_INT);
+    $limit = ($limit !== false && $limit > 0) ? $limit : 10;
+
+    $search = filter_input(INPUT_GET, "search") ?: "";
+
+    $sortInput = strtoupper(filter_input(INPUT_GET, "sort") ?: "ASC");
+    $order = in_array($sortInput, ["ASC", "DESC"]) ? $sortInput : "ASC";
+
+    $offset = ($page - 1) * $limit;
     $userId = AuthMiddleware::userId();
 
-    $res = new TodoRepository($conn)->fetchAll($userId, $limit, $offset);
+    $todoRepo = new TodoRepository($conn);
+    $res = $todoRepo->fetchAll($userId, $search, $order, $limit, $offset);
 
-    if ($res && $limit && $page) {
-      echo json_encode([
-        "data" => $res,
-        "page" => $page,
-        "limit" => $limit,
-        "total" => count($res)
-      ]);
-      return;
-    } else {
-      echo json_encode([
-        "data" => $res,
-        "total" => count($res)
-      ]);
-    }
+    $total = $todoRepo->count($userId, $search);
+    $totalPages = $limit > 0 ? (int) ceil($total / $limit) : 1;
+
+    echo json_encode([
+      "data" => $res,
+      "page" => $page,
+      "limit" => $limit,
+      "total" => $total,
+      "total_pages" => $totalPages
+    ]);
+    return;
   }
 }

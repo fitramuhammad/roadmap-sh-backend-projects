@@ -66,7 +66,9 @@ class Router
           $middlewares = $routerConfig["middlewares"];
 
           foreach ($middlewares as $middlewareClass) {
-            if (class_exists($middlewareClass)) {
+            if (is_object($middlewareClass)) {
+              $middlewareClass->handle();
+            } else if (class_exists($middlewareClass)) {
               $middleware = new $middlewareClass();
               $middleware->handle();
             }

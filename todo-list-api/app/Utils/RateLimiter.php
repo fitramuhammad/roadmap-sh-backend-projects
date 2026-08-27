@@ -47,12 +47,12 @@ class RateLimiter
 
   public function remainingRequest(string $key)
   {
-    $clientInfo = apcu_key_info($key);
+    $request = apcu_fetch($key);
 
-    if (!$clientInfo) {
+    if (!$request) {
       return $this->maxRequest;
     }
 
-    return max(0, $this->maxRequest - (int) apcu_fetch($key));
+    return max(0, $this->maxRequest - (int) $request);
   }
 }

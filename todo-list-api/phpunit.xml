@@ -11,6 +11,7 @@
     </testsuites>
     <php>
         <env name="JWT_SECRET" value="test_jwt_secret_key_for_testing_purposes_1234567890"/>
+        <env name="JWT_REFRESH_SECRET" value="test_jwt_refresh_secret_key_for_testing_purposes_1234567890"/>
         <env name="DB_HOST" value="localhost"/>
         <env name="DB_PORT" value="5432"/>
         <env name="DB_NAME" value="todo_test"/>

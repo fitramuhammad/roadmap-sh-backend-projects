@@ -8,19 +8,27 @@ use Exception;
 
 class JwtUtil
 {
+  // Token expires in 15 minutes
+  public const ACCESS_TOKEN_TTL = 900;
+
+  // Token expires in 7 days
+  public const REFRESH_TOKEN_TTL = 7 * 24 * 60 * 60;
+
   private static function getSecretKey(): string
   {
     return $_ENV["JWT_SECRET"];
   }
 
+  private static function getRefreshSecretKey(): string
+  {
+    return $_ENV["JWT_REFRESH_SECRET"];
+  }
+
   public static function generateToken(int $userId): string
   {
     $secretKey = self::getSecretKey();
-
     $issuedAt = time();
-
-    // Token expires in 1 hour
-    $expirationTime = $issuedAt + 3600;
+    $expirationTime = $issuedAt + self::ACCESS_TOKEN_TTL;
 
     $payload = [
       'iat' => $issuedAt,
@@ -40,5 +48,20 @@ class JwtUtil
     } catch (Exception $_e) {
       return false;
     }
+  }
+
+  public static function generateRefreshToken(): string
+  {
+    return bin2hex(random_bytes(32));
+  }
+
+  public static function hashToken(string $token): string
+  {
+    return hash_hmac("sha256", $token, self::getRefreshSecretKey());
+  }
+
+  public static function getRefreshTokenExpiresAt(): string
+  {
+    return date("Y-m-d H:i:s", time() + self::REFRESH_TOKEN_TTL);
   }
 }

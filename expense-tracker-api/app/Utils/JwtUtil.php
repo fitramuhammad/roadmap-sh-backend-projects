@@ -3,6 +3,7 @@
 namespace App\Utils;
 
 use Firebase\JWT\JWT;
+use Firebase\JWT\Key;
 
 class JwtUtil
 {
@@ -24,5 +25,10 @@ class JwtUtil
     ];
 
     return JWT::encode($payload, $secretKey, "HS256");
+  }
+
+  public static function verifyToken(string $token): \stdClass
+  {
+    return JWT::decode($token, new Key(self::getSecretKey(), "HS256"));
   }
 }

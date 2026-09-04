@@ -3,6 +3,14 @@ import { getCache, setCache } from "./cache.ts";
 export function startServer(port: string, origin: string): void {
   const server = Bun.serve({
     port: Number(port),
+    static: {
+      "/favicon.ico": async () =>
+        new Response(await Bun.file("public/favicon.ico").bytes(), {
+          headers: {
+            "Content-Type": "image/x-icon",
+          },
+        }),
+    },
     async fetch(req) {
       const { method, url } = req;
       const newUrl = new URL(url);

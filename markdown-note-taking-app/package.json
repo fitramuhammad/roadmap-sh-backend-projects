@@ -1,0 +1,24 @@
+{
+  "name": "markdown-note-taking-app",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "bun run --watch server/index.ts",
+    "start": "bun run server/index.ts",
+    "build": "bun build --target=bun --production --outdir=dist ./server/index.ts",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "dompurify": "^3.4.15",
+    "jsdom": "^30.1.0",
+    "marked": "^14.0.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/jsdom": "^30.0.0",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "typescript": "^5.0.0"
+  }
+}

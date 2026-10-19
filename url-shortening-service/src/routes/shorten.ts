@@ -7,6 +7,7 @@ import {
   getUrlStats,
 } from "../services/url.service";
 import { HTTPException } from "hono/http-exception";
+import { AppError } from "../utils/validate";
 
 const app = new Hono();
 
@@ -18,11 +19,11 @@ app.post("/", async (c) => {
     return c.json(shortUrl, 201);
   } catch (err) {
     if (err instanceof HTTPException) throw err;
-    if (err instanceof Error) {
-      if (err.message === "Short code already exists") {
-        throw new HTTPException(409, { message: err.message });
+    if (err instanceof AppError) {
+      if (err.code === "SHORT_CODE_EXISTS") {
+        throw new HTTPException(409, { message: err.code });
       }
-      throw new HTTPException(400, { message: err.message });
+      throw new HTTPException(400, { message: err.code });
     }
   }
 });

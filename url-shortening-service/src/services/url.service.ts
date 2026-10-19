@@ -2,37 +2,51 @@ import { eq, sql } from "drizzle-orm";
 import { db } from "../db";
 import { urls } from "../db/schema";
 import { generateShortCode } from "../utils/nanoid";
+import { AppError, isValidCustomCode, parseHttpUrl } from "../utils/validate";
 
-export async function createShortUrl(url: string, customCode?: string) {
-  if (typeof url !== "string" || !URL.canParse(url)) {
-    throw new Error("Invalid Url format");
-  }
+export async function createShortUrl(url: unknown, customCode?: unknown) {
+  const normalizedUrl = parseHttpUrl(url);
 
-  const code = customCode ?? generateShortCode();
+  let code = generateShortCode();
 
-  if (customCode) {
-    const [existing] = await db
-      .select({ id: urls.id })
-      .from(urls)
-      .where(eq(urls.shortCode, customCode));
-
-    if (existing) {
-      throw new Error("Short code already exists");
+  if (customCode !== undefined && customCode !== null && customCode !== "") {
+    if (typeof customCode !== "string" || !isValidCustomCode(customCode)) {
+      throw new AppError("INVALID_CUSTOM_CODE");
     }
+
+    code = customCode;
   }
 
-  const [newShortUrl] = await db
-    .insert(urls)
-    .values({ shortCode: code, url })
-    .returning({
-      id: urls.id,
-      url: urls.url,
-      shortCode: urls.shortCode,
-      createdAt: urls.createdAt,
-      updatedAt: urls.updatedAt,
-    });
+  try {
+    const [newShortUrl] = await db
+      .insert(urls)
+      .values({ shortCode: code, url: normalizedUrl })
+      .returning({
+        id: urls.id,
+        url: urls.url,
+        shortCode: urls.shortCode,
+        createdAt: urls.createdAt,
+        updatedAt: urls.updatedAt,
+      });
 
-  return newShortUrl;
+    if (!newShortUrl) {
+      throw new Error("Insert returned no row");
+    }
+
+    return newShortUrl;
+  } catch (error) {
+    if (error instanceof AppError) throw error;
+
+    if (
+      error instanceof Error &&
+      (error.message.includes("UNIQUE constraint failed") ||
+        error.message.includes("SQLITE_CONSTRAINT"))
+    ) {
+      throw new AppError("SHORT_CODE_EXISTS");
+    }
+
+    throw error;
+  }
 }
 
 export async function getUrlByShortCode(shortCode: string) {
@@ -49,14 +63,12 @@ export async function getUrlByShortCode(shortCode: string) {
   return url ?? null;
 }
 
-export async function updateUrl(shortCode: string, newUrl: string) {
-  if (typeof newUrl !== "string" || !URL.canParse(newUrl)) {
-    throw new Error("Invalid Url format");
-  }
+export async function updateUrl(shortCode: string, newUrl: unknown) {
+  const normalizedUrl = parseHttpUrl(newUrl);
 
   const [updaterUrl] = await db
     .update(urls)
-    .set({ url: newUrl, updatedAt: new Date().toISOString() })
+    .set({ url: normalizedUrl, updatedAt: new Date().toISOString() })
     .where(eq(urls.shortCode, shortCode))
     .returning();
 
@@ -86,4 +98,3 @@ export async function getUrlStats(shortCode: string) {
     .where(eq(urls.shortCode, shortCode));
   return record ?? null;
 }
-

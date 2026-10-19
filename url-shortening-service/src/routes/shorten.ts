@@ -7,25 +7,13 @@ import {
   getUrlStats,
 } from "../services/url.service";
 import { HTTPException } from "hono/http-exception";
-import { AppError } from "../utils/validate";
 
 const app = new Hono();
 
 app.post("/", async (c) => {
   const body = await c.req.json().catch(() => ({}));
-
-  try {
-    const shortUrl = await createShortUrl(body.url, body.customCode);
-    return c.json(shortUrl, 201);
-  } catch (err) {
-    if (err instanceof HTTPException) throw err;
-    if (err instanceof AppError) {
-      if (err.code === "SHORT_CODE_EXISTS") {
-        throw new HTTPException(409, { message: err.code });
-      }
-      throw new HTTPException(400, { message: err.code });
-    }
-  }
+  const shortUrl = await createShortUrl(body.url, body.customCode);
+  return c.json(shortUrl, 201);
 });
 
 app.get("/:shortCode", async (c) => {
@@ -33,7 +21,7 @@ app.get("/:shortCode", async (c) => {
   const record = await getUrlByShortCode(shortCode);
 
   if (!record) {
-    throw new HTTPException(404, { message: "Record not found." });
+    throw new HTTPException(404, { message: "Short URL not found" });
   }
 
   return c.json(record);
@@ -42,20 +30,13 @@ app.get("/:shortCode", async (c) => {
 app.put("/:shortCode", async (c) => {
   const { shortCode } = c.req.param();
   const body = await c.req.json().catch(() => ({}));
+  const res = await updateUrl(shortCode, body.url);
 
-  try {
-    const res = await updateUrl(shortCode, body.url);
-    if (!res) {
-      throw new HTTPException(404, { message: "Not Found" });
-    }
-
-    return c.json(res);
-  } catch (error) {
-    if (error instanceof HTTPException) throw error;
-    if (error instanceof Error) {
-      throw new HTTPException(400, { message: error.message });
-    }
+  if (!res) {
+    throw new HTTPException(404, { message: "Short URL not found" });
   }
+
+  return c.json(res);
 });
 
 app.delete("/:shortCode", async (c) => {
@@ -63,7 +44,7 @@ app.delete("/:shortCode", async (c) => {
   const deleted = await deleteUrl(shortCode);
 
   if (!deleted) {
-    throw new HTTPException(404, { message: "Not Found" });
+    throw new HTTPException(404, { message: "Short URL not found" });
   }
 
   return c.body(null, 204);
@@ -74,7 +55,7 @@ app.get("/:shortCode/stats", async (c) => {
   const stats = await getUrlStats(shortCode);
 
   if (!stats) {
-    throw new HTTPException(404, { message: "Not Found" });
+    throw new HTTPException(404, { message: "Short URL not found" });
   }
 
   return c.json(stats);

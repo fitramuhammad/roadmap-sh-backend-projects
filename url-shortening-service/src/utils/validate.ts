@@ -6,9 +6,20 @@ type ErrorCode =
 
 const RESERVED_CODES = new Set(["api", "health", "favicon.ico"]);
 
+const ERROR_MESSAGES: Record<ErrorCode, string> = {
+  INVALID_URL: "URL must be a valid http or https URL",
+  INVALID_CUSTOM_CODE:
+    "Custom code must be 3 to 30 characters using letters, numbers, hyphens, or underscores, and must not be reserved",
+  SHORT_CODE_EXISTS: "Short code already exists",
+  NOT_FOUND: "Short URL not found",
+};
+
 export class AppError extends Error {
-  constructor(public code: ErrorCode) {
-    super(code);
+  constructor(
+    public code: ErrorCode,
+    message = ERROR_MESSAGES[code],
+  ) {
+    super(message);
     this.name = "AppError";
   }
 }

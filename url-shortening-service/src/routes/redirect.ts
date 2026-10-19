@@ -12,7 +12,7 @@ app.get("/:shortCode", async (c) => {
   const url = await getUrlByShortCode(shortCode);
 
   if (!url) {
-    throw new HTTPException(404, { message: "Not Found" });
+    throw new HTTPException(404, { message: "Short URL not found" });
   }
 
   await incrementVisitCount(shortCode);

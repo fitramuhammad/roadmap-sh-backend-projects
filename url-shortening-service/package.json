@@ -9,9 +9,13 @@
     "db:generate": "bunx drizzle-kit generate",
     "db:migrate": "bunx drizzle-kit migrate",
     "db:studio": "bunx drizzle-kit studio",
+    "lint": "biome lint .",
+    "format": "biome format --write .",
+    "check": "biome check .",
     "test": "bun test"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.6.2",
     "@types/better-sqlite3": "^9.6.0",
     "@types/bun": "latest",
     "better-sqlite3": "^13.0.3",

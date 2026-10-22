@@ -13,10 +13,7 @@ export function createShortenRoutes(
 
   app.post("/", limiter, async (c) => {
     const body = await c.req.json().catch(() => ({}));
-    const shortUrl = await urlService.createShortUrl(
-      body.url,
-      body.customCode,
-    );
+    const shortUrl = await urlService.createShortUrl(body.url, body.customCode);
     return c.json(shortUrl, 201);
   });
 

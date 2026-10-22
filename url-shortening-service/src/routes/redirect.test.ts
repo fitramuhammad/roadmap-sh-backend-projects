@@ -3,10 +3,7 @@ import { createTestApp } from "../test/helpers";
 
 type TestApp = ReturnType<typeof createTestApp>;
 
-async function createShortUrl(
-  app: TestApp["app"],
-  target: string,
-) {
+async function createShortUrl(app: TestApp["app"], target: string) {
   const response = await app.request("/api/shorten", {
     method: "POST",
     headers: { "content-type": "application/json" },
@@ -41,10 +38,7 @@ describe("redirect routes", () => {
   });
 
   it("increments the visit count after a redirect", async () => {
-    const shortCode = await createShortUrl(
-      testApp.app,
-      "https://example.com",
-    );
+    const shortCode = await createShortUrl(testApp.app, "https://example.com");
 
     await testApp.app.request(`/${shortCode}`, { redirect: "manual" });
     await testApp.app.request(`/${shortCode}`, { redirect: "manual" });

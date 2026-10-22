@@ -1,26 +1,47 @@
-import { Hono } from "hono";
-import { logger } from "hono/logger";
-import shortenRoutes from "./routes/shorten";
-import redirectRoutes from "./routes/redirect";
-import { errorHandler } from "./middleware/error-handler";
+import { RedisClient } from "bun";
+import { createApp } from "./app";
+import { createDb } from "./db";
+import { runMigrations } from "./db/migrate";
 
-const app = new Hono();
+const { db, sqlite } = createDb(process.env.DB_FILE_NAME ?? "data.db");
 
-app.use("*", logger());
+runMigrations(db);
 
-// API routes
-app.route("/api/shorten", shortenRoutes);
+const redis = new RedisClient(
+  process.env.REDIS_URL ?? "redis://localhost:6379",
+);
+await redis.connect();
 
-// Redirect routes (must be last, catches /:shortCode)
-app.route("/", redirectRoutes);
+const port = Number.parseInt(process.env.PORT ?? "3000", 10);
+const app = createApp(db, redis);
 
-app.onError(errorHandler);
-
-const port = parseInt(process.env.PORT ?? "3000", 10);
+const server = Bun.serve({
+  port,
+  fetch: app.fetch,
+});
 
 console.log(`Server running on http://localhost:${port}`);
 
-export default {
-  port,
-  fetch: app.fetch,
-};
+let isShuttingDown = false;
+
+async function shutdown(signal: string) {
+  if (isShuttingDown) {
+    return;
+  }
+
+  isShuttingDown = true;
+  console.log(`Received ${signal}, shutting down`);
+
+  await server.stop();
+  redis.close();
+  sqlite.close();
+  process.exit(0);
+}
+
+process.on("SIGTERM", () => {
+  void shutdown("SIGTERM");
+});
+
+process.on("SIGINT", () => {
+  void shutdown("SIGINT");
+});

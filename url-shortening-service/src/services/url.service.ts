@@ -1,100 +1,108 @@
 import { eq, sql } from "drizzle-orm";
-import { db } from "../db";
+import type { Db } from "../db";
 import { urls } from "../db/schema";
 import { generateShortCode } from "../utils/nanoid";
 import { AppError, isValidCustomCode, parseHttpUrl } from "../utils/validate";
 
-export async function createShortUrl(url: unknown, customCode?: unknown) {
-  const normalizedUrl = parseHttpUrl(url);
+const publicColumns = {
+  id: urls.id,
+  url: urls.url,
+  shortCode: urls.shortCode,
+  createdAt: urls.createdAt,
+  updatedAt: urls.updatedAt,
+};
 
-  let code = generateShortCode();
+export function createUrlService(db: Db) {
+  return {
+    async createShortUrl(url: unknown, customCode?: unknown) {
+      const normalizedUrl = parseHttpUrl(url);
 
-  if (customCode !== undefined && customCode !== null && customCode !== "") {
-    if (typeof customCode !== "string" || !isValidCustomCode(customCode)) {
-      throw new AppError("INVALID_CUSTOM_CODE");
-    }
+      let code = generateShortCode();
 
-    code = customCode;
-  }
+      if (
+        customCode !== undefined &&
+        customCode !== null &&
+        customCode !== ""
+      ) {
+        if (typeof customCode !== "string" || !isValidCustomCode(customCode)) {
+          throw new AppError("INVALID_CUSTOM_CODE");
+        }
 
-  try {
-    const [newShortUrl] = await db
-      .insert(urls)
-      .values({ shortCode: code, url: normalizedUrl })
-      .returning({
-        id: urls.id,
-        url: urls.url,
-        shortCode: urls.shortCode,
-        createdAt: urls.createdAt,
-        updatedAt: urls.updatedAt,
-      });
+        code = customCode;
+      }
 
-    if (!newShortUrl) {
-      throw new Error("Insert returned no row");
-    }
+      try {
+        const [newShortUrl] = await db
+          .insert(urls)
+          .values({ shortCode: code, url: normalizedUrl })
+          .returning(publicColumns);
 
-    return newShortUrl;
-  } catch (error) {
-    if (error instanceof AppError) throw error;
+        if (!newShortUrl) {
+          throw new Error("Insert returned no row");
+        }
 
-    if (
-      error instanceof Error &&
-      (error.message.includes("UNIQUE constraint failed") ||
-        error.message.includes("SQLITE_CONSTRAINT"))
-    ) {
-      throw new AppError("SHORT_CODE_EXISTS");
-    }
+        return newShortUrl;
+      } catch (error) {
+        if (error instanceof AppError) throw error;
 
-    throw error;
-  }
+        if (
+          error instanceof Error &&
+          (error.message.includes("UNIQUE constraint failed") ||
+            error.message.includes("SQLITE_CONSTRAINT"))
+        ) {
+          throw new AppError("SHORT_CODE_EXISTS");
+        }
+
+        throw error;
+      }
+    },
+
+    async getUrlByShortCode(shortCode: string) {
+      const [url] = await db
+        .select(publicColumns)
+        .from(urls)
+        .where(eq(urls.shortCode, shortCode));
+
+      return url ?? null;
+    },
+
+    async updateUrl(shortCode: string, newUrl: unknown) {
+      const normalizedUrl = parseHttpUrl(newUrl);
+
+      const [updatedUrl] = await db
+        .update(urls)
+        .set({ url: normalizedUrl, updatedAt: new Date().toISOString() })
+        .where(eq(urls.shortCode, shortCode))
+        .returning();
+
+      return updatedUrl ?? null;
+    },
+
+    async deleteUrl(shortCode: string) {
+      const deletedUrl = await db
+        .delete(urls)
+        .where(eq(urls.shortCode, shortCode))
+        .returning();
+
+      return deletedUrl.length !== 0;
+    },
+
+    async incrementVisitCount(shortCode: string) {
+      await db
+        .update(urls)
+        .set({ visitCount: sql`${urls.visitCount} + 1` })
+        .where(eq(urls.shortCode, shortCode));
+    },
+
+    async getUrlStats(shortCode: string) {
+      const [record] = await db
+        .select()
+        .from(urls)
+        .where(eq(urls.shortCode, shortCode));
+
+      return record ?? null;
+    },
+  };
 }
 
-export async function getUrlByShortCode(shortCode: string) {
-  const [url] = await db
-    .select({
-      id: urls.id,
-      url: urls.url,
-      shortCode: urls.shortCode,
-      createdAt: urls.createdAt,
-      updatedAt: urls.updatedAt,
-    })
-    .from(urls)
-    .where(eq(urls.shortCode, shortCode));
-  return url ?? null;
-}
-
-export async function updateUrl(shortCode: string, newUrl: unknown) {
-  const normalizedUrl = parseHttpUrl(newUrl);
-
-  const [updaterUrl] = await db
-    .update(urls)
-    .set({ url: normalizedUrl, updatedAt: new Date().toISOString() })
-    .where(eq(urls.shortCode, shortCode))
-    .returning();
-
-  return updaterUrl ?? null;
-}
-
-export async function deleteUrl(shortCode: string) {
-  const deletedUrl = await db
-    .delete(urls)
-    .where(eq(urls.shortCode, shortCode))
-    .returning();
-
-  return deletedUrl.length !== 0;
-}
-
-export async function incrementVisitCount(shortCode: string) {
-  await db
-    .update(urls)
-    .set({ visitCount: sql`${urls.visitCount} + 1` })
-    .where(eq(urls.shortCode, shortCode));
-}
-
-export async function getUrlStats(shortCode: string) {
-  const [record] = await db
-    .select()
-    .from(urls)
-    .where(eq(urls.shortCode, shortCode));
-  return record ?? null;
-}
+export type UrlService = ReturnType<typeof createUrlService>;

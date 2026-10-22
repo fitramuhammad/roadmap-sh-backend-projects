@@ -1,22 +1,21 @@
 import { Hono } from "hono";
-import {
-  getUrlByShortCode,
-  incrementVisitCount,
-} from "../services/url.service";
 import { HTTPException } from "hono/http-exception";
+import type { UrlService } from "../services/url.service";
 
-const app = new Hono();
+export function createRedirectRoutes(urlService: UrlService) {
+  const app = new Hono();
 
-app.get("/:shortCode", async (c) => {
-  const { shortCode } = c.req.param();
-  const url = await getUrlByShortCode(shortCode);
+  app.get("/:shortCode", async (c) => {
+    const { shortCode } = c.req.param();
+    const url = await urlService.getUrlByShortCode(shortCode);
 
-  if (!url) {
-    throw new HTTPException(404, { message: "Short URL not found" });
-  }
+    if (!url) {
+      throw new HTTPException(404, { message: "Short URL not found" });
+    }
 
-  await incrementVisitCount(shortCode);
-  return c.redirect(url.url, 302);
-});
+    await urlService.incrementVisitCount(shortCode);
+    return c.redirect(url.url, 302);
+  });
 
-export default app;
+  return app;
+}

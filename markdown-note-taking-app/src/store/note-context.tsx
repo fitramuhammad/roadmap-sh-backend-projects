@@ -38,6 +38,16 @@ export function notesReducer(state: NoteState, action: NoteAction): NoteState {
       };
     }
 
+    case "ADD_NOTE": {
+      return {
+        ...state,
+        notes: [action.payload, ...state.notes],
+        activeNoteId: action.payload.id,
+        activeTitle: action.payload.title,
+        activeMarkdown: action.payload.markdown,
+      };
+    }
+
     case "CREATE_NOTE": {
       const newId = `note-${Date.now()}`;
       const newNote: Note = {
@@ -178,7 +188,7 @@ export interface NotesContextValue {
   state: NoteState;
   dispatch: React.Dispatch<NoteAction>;
   // Helper functions
-  createNote: () => void;
+  createNote: () => Promise<void>;
   removeNote: (id: string) => void;
   selectNote: (note: Note) => void;
   setActiveTitle: (title: string) => void;
@@ -190,7 +200,7 @@ export interface NotesContextValue {
   setIsGrammarOpen: (isOpen: boolean) => void;
   applyGrammarFix: (issue: GrammarIssue) => Promise<void> | void;
   dismissGrammarIssue: (id: string) => void;
-  uploadNote: (markdown: string) => void;
+  uploadNote: (markdown: string) => Promise<void>;
   saveNote: (id?: string, title?: string, markdown?: string) => Promise<Note | undefined>;
 }
 
@@ -252,7 +262,15 @@ export default function NotesContextProvider({
     return await res.json();
   };
 
-  const createNote = () => dispatch({ type: "CREATE_NOTE" });
+  const createNote = async () => {
+    const defaultMarkdown = "# Untitled Note\n\nStart typing markdown here...";
+    try {
+      const note = await saveNote(undefined, "Untitled Note", defaultMarkdown);
+      if (note) dispatch({ type: "ADD_NOTE", payload: note });
+    } catch (err) {
+      console.error("Failed to create note:", err);
+    }
+  };
   const removeNote = useCallback(async (id: string) => {
     await deleteNote(id);
     dispatch({ type: "REMOVE_NOTE", payload: id });
@@ -289,8 +307,14 @@ export default function NotesContextProvider({
     dispatch({ type: "DISMISS_GRAMMAR_ISSUE", payload: id });
   const checkGrammar = (issues: GrammarIssue[]) =>
     dispatch({ type: "CHECK_GRAMMAR", payload: issues });
-  const uploadNote = (markdown: string) =>
-    dispatch({ type: "UPLOAD_NOTE", payload: { markdown } });
+  const uploadNote = async (markdown: string) => {
+    try {
+      const note = await saveNote(undefined, undefined, markdown);
+      if (note) dispatch({ type: "ADD_NOTE", payload: note });
+    } catch (err) {
+      console.error("Failed to upload note:", err);
+    }
+  };
 
   return (
     <NoteContext.Provider

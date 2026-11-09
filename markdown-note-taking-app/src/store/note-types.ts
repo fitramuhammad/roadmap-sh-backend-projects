@@ -13,6 +13,7 @@ export interface NoteState {
 
 export type NoteAction =
   | { type: "SET_NOTES"; payload: Note[] }
+  | { type: "ADD_NOTE"; payload: Note }
   | { type: "CREATE_NOTE" }
   | { type: "REMOVE_NOTE"; payload: string }
   | { type: "SELECT_NOTE"; payload: Note }

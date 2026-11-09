@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>URL Shortener</title>
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <main class="card">
+      <header>
+        <h1>Simple URL Shortener</h1>
+      </header>
+
+      <form id="shorten-form" novalidate>
+        <div class="url-field">
+          <label class="sr-only" for="url-input">Long URL</label>
+          <input
+            id="url-input"
+            type="url"
+            placeholder="https://example.com/very/long/url"
+            autocomplete="off"
+            required
+          />
+        </div>
+        <div class="form-row">
+          <div class="custom-code-field">
+            <label class="sr-only" for="custom-code-input"
+              >Custom code (optional)</label
+            >
+            <input
+              id="custom-code-input"
+              type="text"
+              placeholder="Custom code (optional)"
+              autocomplete="off"
+              spellcheck="false"
+            />
+          </div>
+          <button type="submit" class="primary">Shorten</button>
+        </div>
+      </form>
+
+      <p id="error" class="error" role="alert" hidden></p>
+
+      <section id="result" class="result" hidden aria-label="Shortened URL">
+        <a
+          id="result-link"
+          class="result-text"
+          target="_blank"
+          rel="noopener"
+        ></a>
+        <button id="result-copy" type="button" class="ghost">Copy</button>
+      </section>
+
+      <section id="history-section" class="history-section" hidden>
+        <h2>History</h2>
+        <ul id="history"></ul>
+      </section>
+      <p id="empty-history" class="empty">No links shortened yet.</p>
+    </main>
+
+    <script src="/script.js"></script>
+  </body>
+</html>

@@ -129,7 +129,7 @@ export function notesReducer(state: NoteState, action: NoteAction): NoteState {
       };
 
     case "APPLY_GRAMMAR_FIX": {
-      const updatedMarkdown = state.activeMarkdown.replace(
+      const updatedMarkdown = state.activeMarkdown.replaceAll(
         action.payload.original,
         action.payload.suggestion,
       );
@@ -289,7 +289,7 @@ export default function NotesContextProvider({
   const setIsGrammarOpen = (isOpen: boolean) =>
     dispatch({ type: "SET_GRAMMAR_OPEN", payload: isOpen });
   const applyGrammarFix = async (issue: GrammarIssue) => {
-    const updatedMarkdown = state.activeMarkdown.replace(
+    const updatedMarkdown = state.activeMarkdown.replaceAll(
       issue.original,
       issue.suggestion,
     );

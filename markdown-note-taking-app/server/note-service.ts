@@ -14,6 +14,7 @@ export class NoteNotFoundError extends Error {
 
 export interface NoteService {
   save(markdown: string, id?: string, title?: string): Promise<Note>;
+  update(id: string, markdown: string, title?: string): Promise<Note>;
   list(): Promise<Pick<Note, "id" | "title" | "markdown" | "createdAt">[]>;
   delete(id: string): Promise<void>;
   render(id: string): Promise<string>;
@@ -46,6 +47,16 @@ export function createNoteService(
       const createdAt = existing ? existing.createdAt : nextCreatedAt();
 
       const note: Note = { id: finalId, title: finalTitle, markdown, createdAt };
+      await store.save(note);
+      return note;
+    },
+
+    async update(id: string, markdown: string, title?: string): Promise<Note> {
+      const existing = await store.find(id);
+      if (!existing) throw new NoteNotFoundError(id);
+
+      const finalTitle = title?.trim() || deriveTitle(markdown);
+      const note: Note = { id, title: finalTitle, markdown, createdAt: existing.createdAt };
       await store.save(note);
       return note;
     },

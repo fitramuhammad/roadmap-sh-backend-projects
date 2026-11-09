@@ -99,7 +99,7 @@ Bun.serve({
           return jsonError(400, "Invalid body: 'markdown' must be a string");
         }
         try {
-          const note = await service.save(noteBody.markdown, id, noteBody.title);
+          const note = await service.update(id, noteBody.markdown, noteBody.title);
           return Response.json(note);
         } catch (err) {
           if (err instanceof NoteNotFoundError) {

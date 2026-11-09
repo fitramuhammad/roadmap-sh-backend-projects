@@ -16,6 +16,22 @@ const service = createNoteService(store, renderer, grammar);
 const port = Number(process.env.PORT ?? 3000);
 const MAX_BODY_BYTES = 512_000; // 512 KB
 
+// Grammar check: max 10 requests per IP per minute.
+const GRAMMAR_RATE_LIMIT = 10;
+const GRAMMAR_RATE_WINDOW_MS = 60_000;
+const grammarRateLimiter = new Map<string, number[]>();
+
+function checkGrammarRateLimit(ip: string): boolean {
+  const now = Date.now();
+  const hits = (grammarRateLimiter.get(ip) ?? []).filter(
+    (t) => now - t < GRAMMAR_RATE_WINDOW_MS,
+  );
+  if (hits.length >= GRAMMAR_RATE_LIMIT) return false;
+  hits.push(now);
+  grammarRateLimiter.set(ip, hits);
+  return true;
+}
+
 const SECURITY_HEADERS: Record<string, string> = {
   "X-Content-Type-Options": "nosniff",
   "X-Frame-Options": "DENY",
@@ -138,6 +154,12 @@ Bun.serve({
 
     "/notes/:id/grammar": {
       async GET(req) {
+        const ip =
+          req.headers.get("x-forwarded-for")?.split(",")[0].trim() ??
+          "unknown";
+        if (!checkGrammarRateLimit(ip)) {
+          return jsonError(429, "Rate limit exceeded. Try again in a minute.");
+        }
         try {
           const issues = await service.checkGrammar(req.params.id);
           return secureJson(issues);

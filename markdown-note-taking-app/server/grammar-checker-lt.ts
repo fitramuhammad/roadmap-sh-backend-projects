@@ -18,7 +18,7 @@ interface LanguageToolResponse {
 
 export class LanguageToolChecker implements GrammarChecker {
   constructor(
-    private readonly baseUrl = "https://api.languagetool.com",
+    private readonly baseUrl = "https://api.languagetool.org",
     private readonly language = "en-US",
   ) {}
 

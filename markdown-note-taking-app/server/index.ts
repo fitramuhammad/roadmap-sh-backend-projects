@@ -16,8 +16,20 @@ const service = createNoteService(store, renderer, grammar);
 const port = Number(process.env.PORT ?? 3000);
 const MAX_BODY_BYTES = 512_000; // 512 KB
 
+const SECURITY_HEADERS: Record<string, string> = {
+  "X-Content-Type-Options": "nosniff",
+  "X-Frame-Options": "DENY",
+  "Referrer-Policy": "same-origin",
+};
+
 function jsonError(status: number, message: string): Response {
-  return Response.json({ error: message }, { status });
+  return Response.json({ error: message }, { status, headers: SECURITY_HEADERS });
+}
+
+function secureJson(data: unknown, init?: ResponseInit): Response {
+  const base = new Headers((init as { headers?: HeadersInit } | undefined)?.headers);
+  for (const [k, v] of Object.entries(SECURITY_HEADERS)) base.set(k, v);
+  return Response.json(data, { ...init, headers: base });
 }
 
 async function readJson(req: Request): Promise<Record<string, unknown> | null> {
@@ -50,7 +62,7 @@ Bun.serve({
       async GET() {
         try {
           const notes = await service.list();
-          return Response.json(notes);
+          return secureJson(notes);
         } catch (err) {
           console.error("GET /notes failed:", err);
           return jsonError(500, "Failed to list notes");
@@ -68,7 +80,7 @@ Bun.serve({
             body?.id as string | undefined,
             noteBody.title,
           );
-          return Response.json(note, { status: 201 });
+          return secureJson(note, { status: 201 });
         } catch (err) {
           console.error("POST /notes failed:", err);
           return jsonError(500, "Failed to save note");
@@ -81,7 +93,7 @@ Bun.serve({
         try {
           const html = await service.render(req.params.id);
           return new Response(html, {
-            headers: { "Content-Type": "text/html" },
+            headers: { "Content-Type": "text/html", ...SECURITY_HEADERS },
           });
         } catch (err) {
           if (err instanceof NoteNotFoundError) {
@@ -100,7 +112,7 @@ Bun.serve({
         }
         try {
           const note = await service.update(id, noteBody.markdown, noteBody.title);
-          return Response.json(note);
+          return secureJson(note);
         } catch (err) {
           if (err instanceof NoteNotFoundError) {
             return jsonError(404, err.message);
@@ -113,7 +125,7 @@ Bun.serve({
         const id = req.params.id;
         try {
           await service.delete(id);
-          return new Response(null, { status: 204 });
+          return new Response(null, { status: 204, headers: SECURITY_HEADERS });
         } catch (err) {
           if (err instanceof NoteNotFoundError) {
             return jsonError(404, err.message);
@@ -128,7 +140,7 @@ Bun.serve({
       async GET(req) {
         try {
           const issues = await service.checkGrammar(req.params.id);
-          return Response.json(issues);
+          return secureJson(issues);
         } catch (err) {
           if (err instanceof NoteNotFoundError) {
             return jsonError(404, err.message);

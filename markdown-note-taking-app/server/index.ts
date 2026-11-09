@@ -14,12 +14,15 @@ const grammar = new LanguageToolChecker(
 const service = createNoteService(store, renderer, grammar);
 
 const port = Number(process.env.PORT ?? 3000);
+const MAX_BODY_BYTES = 512_000; // 512 KB
 
 function jsonError(status: number, message: string): Response {
   return Response.json({ error: message }, { status });
 }
 
 async function readJson(req: Request): Promise<Record<string, unknown> | null> {
+  const len = Number(req.headers.get("content-length") ?? 0);
+  if (len > MAX_BODY_BYTES) return null;
   try {
     return await req.json();
   } catch {

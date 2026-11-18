@@ -1,0 +1,19 @@
+{
+  "name": "broadcast-server",
+  "module": "./src/index.ts",
+  "type": "module",
+  "private": true,
+  "bin": {
+    "broadcast-server": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "bun check",
+    "dev": "bun run ./src/index.ts"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^7"
+  }
+}

@@ -85,14 +85,27 @@ if (host.length === 0) {
   process.exit(1);
 }
 
-const username = values.username ?? Bun.randomUUIDv7();
+function resolveUsername(value: string | undefined): string {
+  if (value === undefined) {
+    return Bun.randomUUIDv7();
+  }
+
+  const username = value.trim();
+
+  if (username.length === 0) {
+    console.error("Invalid username: username cannot be empty");
+    process.exit(1);
+  }
+
+  return username;
+}
 
 switch (command) {
   case "start":
     startServer(port, host);
     break;
   case "connect":
-    connect(port, username, host);
+    connect(port, resolveUsername(values.username), host);
     break;
   default:
     console.error(`Unknown command: ${command}`);

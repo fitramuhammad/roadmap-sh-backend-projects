@@ -1,7 +1,18 @@
 import type { ServerWebSocket } from "bun";
 
-export function startServer(port: string, host = "127.0.0.1") {
-  const clients = new Set<ServerWebSocket<{ username: string }>>();
+const HEARTBEAT_INTERVAL_MS = 30_000;
+
+type ClientData = {
+  username: string;
+  isAlive: boolean;
+};
+
+export function startServer(
+  port: string,
+  host = "127.0.0.1",
+  heartbeatIntervalMs = HEARTBEAT_INTERVAL_MS,
+) {
+  const clients = new Set<ServerWebSocket<ClientData>>();
 
   try {
     const server = Bun.serve({
@@ -9,8 +20,9 @@ export function startServer(port: string, host = "127.0.0.1") {
       hostname: host,
       fetch(req, server) {
         const url = new URL(req.url);
-        const data = {
-          username: url.searchParams.get("username") || Bun.randomUUIDv7(),
+        const data: ClientData = {
+          username: url.searchParams.get("username")?.trim() ?? "",
+          isAlive: true,
         };
         if (server.upgrade(req, { data })) {
           return;
@@ -19,9 +31,14 @@ export function startServer(port: string, host = "127.0.0.1") {
         return new Response("upgrade failed", { status: 426 });
       },
       websocket: {
-        data: {} as { username: string },
+        data: { username: "", isAlive: true },
         maxPayloadLength: 64 * 1024,
         open(ws) {
+          if (ws.data.username.length === 0) {
+            ws.close(1008, "username is required.");
+            return;
+          }
+
           const existing = clients
             .values()
             .find((client) => client.data.username === ws.data.username);
@@ -46,11 +63,34 @@ export function startServer(port: string, host = "127.0.0.1") {
             }
           });
         },
+        pong(ws) {
+          ws.data.isAlive = true;
+        },
         close(ws) {
           clients.delete(ws);
         },
       },
     });
+
+    const heartbeat = setInterval(() => {
+      for (const client of clients) {
+        if (client.readyState !== WebSocket.OPEN) {
+          clients.delete(client);
+          continue;
+        }
+
+        if (!client.data.isAlive) {
+          clients.delete(client);
+          client.terminate();
+          continue;
+        }
+
+        client.data.isAlive = false;
+        client.ping();
+      }
+    }, heartbeatIntervalMs);
+
+    heartbeat.unref();
 
     let shuttingDown = false;
 
@@ -60,6 +100,7 @@ export function startServer(port: string, host = "127.0.0.1") {
       }
 
       shuttingDown = true;
+      clearInterval(heartbeat);
       let exitCode = 0;
 
       try {

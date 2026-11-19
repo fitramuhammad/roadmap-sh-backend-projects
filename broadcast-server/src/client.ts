@@ -5,7 +5,7 @@ export function connect(port: string, username: string, host = "127.0.0.1") {
   const ws = new WebSocket(url);
 
   ws.addEventListener("open", async () => {
-    console.log("CONNECTED");
+    console.log(`CONNECTED as ${username}`);
 
     for await (const line of console) {
       if (line.length === 0) {

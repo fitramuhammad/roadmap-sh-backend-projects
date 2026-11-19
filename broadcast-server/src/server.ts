@@ -51,12 +51,28 @@ export function startServer(port: string, host = "127.0.0.1") {
       },
     });
 
+    let shuttingDown = false;
+
     async function shutdown() {
-      clients.forEach((client) => {
-        client.close();
-      });
-      await server.stop(true);
-      process.exit(0);
+      if (shuttingDown) {
+        return;
+      }
+
+      shuttingDown = true;
+      let exitCode = 0;
+
+      try {
+        for (const client of clients) {
+          client.close();
+        }
+
+        await server.stop(true);
+      } catch (error) {
+        console.error(error instanceof Error ? error.message : String(error));
+        exitCode = 1;
+      } finally {
+        process.exit(exitCode);
+      }
     }
 
     process.once("SIGTERM", shutdown);

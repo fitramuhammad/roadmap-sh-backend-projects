@@ -20,6 +20,7 @@ export function startServer(port: string, host = "127.0.0.1") {
       },
       websocket: {
         data: {} as { username: string },
+        maxPayloadLength: 64 * 1024,
         open(ws) {
           const existing = clients
             .values()

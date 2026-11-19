@@ -37,8 +37,11 @@ export function connect(port: string, username: string) {
   });
 
   ws.addEventListener("close", (e) => {
-    console.log("DISCONNECTED");
-    process.exit(e.wasClean ? 0 : 1);
+    const detail = e.reason ? `code ${e.code}: ${e.reason}` : `code ${e.code}`;
+    console.log(`DISCONNECTED (${detail})`);
+
+    const normal = e.code === 1000 || e.code === 1001;
+    process.exit(normal ? 0 : 1);
   });
 
   process.on("SIGINT", () => {

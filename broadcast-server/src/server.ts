@@ -25,7 +25,8 @@ export function startServer(port: string) {
             .find((client) => client.data.username === ws.data.username);
 
           if (existing) {
-            ws.close(1000, "username already exist.");
+            ws.close(1008, "username already exists.");
+            return;
           }
 
           clients.add(ws);
@@ -44,11 +45,7 @@ export function startServer(port: string) {
           });
         },
         close(ws) {
-          clients.forEach((client) => {
-            if (client.data.username === ws.data.username) {
-              clients.delete(client);
-            }
-          });
+          clients.delete(ws);
         },
       },
     });

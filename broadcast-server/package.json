@@ -7,8 +7,10 @@
     "broadcast-server": "./src/index.ts"
   },
   "scripts": {
-    "typecheck": "bun check",
-    "dev": "bun run ./src/index.ts"
+    "start": "bun run ./src/index.ts start",
+    "dev": "bun run ./src/index.ts",
+    "test": "bun test",
+    "typecheck": "bun check"
   },
   "devDependencies": {
     "@types/bun": "latest"

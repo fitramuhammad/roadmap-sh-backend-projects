@@ -1,11 +1,12 @@
 import type { ServerWebSocket } from "bun";
 
-export function startServer(port: string) {
+export function startServer(port: string, host = "127.0.0.1") {
   const clients = new Set<ServerWebSocket<{ username: string }>>();
 
   try {
     const server = Bun.serve({
       port,
+      hostname: host,
       fetch(req, server) {
         const url = new URL(req.url);
         const data = {

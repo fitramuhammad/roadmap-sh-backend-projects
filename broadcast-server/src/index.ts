@@ -13,6 +13,7 @@ Commands:
 
 Options:
   --port <port>          Port to use (default: 3000)
+  --host <host>          Host to bind or connect to (default: 127.0.0.1)
   --username <username>  Username for the client
   -h, --help             Show this help message`;
 
@@ -26,6 +27,9 @@ function parseCli() {
       args: argv.slice(2),
       options: {
         port: {
+          type: "string",
+        },
+        host: {
           type: "string",
         },
         username: {
@@ -74,14 +78,21 @@ if (!Number.isInteger(portNumber) || portNumber < 1 || portNumber > 65535) {
   process.exit(1);
 }
 
+const host = (values.host ?? "127.0.0.1").trim();
+
+if (host.length === 0) {
+  console.error("Invalid host: host cannot be empty");
+  process.exit(1);
+}
+
 const username = values.username ?? Bun.randomUUIDv7();
 
 switch (command) {
   case "start":
-    startServer(port);
+    startServer(port, host);
     break;
   case "connect":
-    connect(port, username);
+    connect(port, username, host);
     break;
   default:
     console.error(`Unknown command: ${command}`);

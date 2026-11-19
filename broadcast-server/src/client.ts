@@ -1,5 +1,6 @@
-export function connect(port: string, username: string) {
-  const url = new URL(`ws://0.0.0.0:${port}`);
+export function connect(port: string, username: string, host = "127.0.0.1") {
+  const hostname = host.includes(":") && !host.startsWith("[") ? `[${host}]` : host;
+  const url = new URL(`ws://${hostname}:${port}`);
   url.searchParams.set("username", username);
   const ws = new WebSocket(url);
 
